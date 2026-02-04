@@ -88,17 +88,18 @@ function normalizeGeminiOutput(value: unknown): GeminiScanOutput {
 
   const ingredients = Array.isArray(record.ingredients)
     ? record.ingredients
-        .map((item) => {
+        .map((item): GeminiIngredient | null => {
           const name = String(item?.name || "").trim();
           if (!name) return null;
+          const notes = String(item?.notes || "").trim();
           return {
             name,
             slug: slugify(name),
             risk: normalizeRisk(item?.risk),
-            notes: String(item?.notes || "").trim() || undefined
+            ...(notes ? { notes } : {})
           };
         })
-        .filter((item): item is GeminiIngredient => Boolean(item))
+        .filter((item): item is GeminiIngredient => item !== null)
     : [];
 
   return {
