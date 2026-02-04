@@ -1,0 +1,13 @@
+{
+  "name": "what-we-use",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:mobile": "pnpm --filter mobile dev",
+    "dev:api": "pnpm --filter api dev"
+  }
+}

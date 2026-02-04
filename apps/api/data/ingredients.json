@@ -1,0 +1,77 @@
+[
+  {
+    "slug": "benzalkonium-chloride",
+    "name": "Benzalkonium Chloride",
+    "aliases": ["BAC", "benzylammonium chloride"],
+    "category": "quat",
+    "risk_level": "high",
+    "health_flags": ["respiratory irritant", "skin sensitiser"],
+    "regulatory_notes": "Listed on EPA Toxic Substances list",
+    "sources": [
+      {
+        "title": "EPA Chemicals of Concern",
+        "url": "https://www.epa.gov/assessing-and-managing-chemicals-under-tsca/chemicals-concern"
+      }
+    ]
+  },
+  {
+    "slug": "sodium-hypochlorite",
+    "name": "Sodium Hypochlorite",
+    "aliases": ["bleach"],
+    "category": "oxidizer",
+    "risk_level": "high",
+    "health_flags": ["respiratory irritant", "eye irritant"],
+    "regulatory_notes": "Common disinfectant; hazardous in concentrated products",
+    "sources": [
+      {
+        "title": "CDC - Cleaning and Disinfecting",
+        "url": "https://www.cdc.gov/hygiene/cleaning/index.html"
+      }
+    ]
+  },
+  {
+    "slug": "ammonium-hydroxide",
+    "name": "Ammonium Hydroxide",
+    "aliases": ["ammonia solution"],
+    "category": "alkali",
+    "risk_level": "high",
+    "health_flags": ["respiratory irritant", "eye irritant"],
+    "regulatory_notes": "Can release irritating vapors indoors",
+    "sources": [
+      {
+        "title": "NIOSH Pocket Guide - Ammonia",
+        "url": "https://www.cdc.gov/niosh/npg/npgd0028.html"
+      }
+    ]
+  },
+  {
+    "slug": "ethanol",
+    "name": "Ethanol",
+    "aliases": ["ethyl alcohol"],
+    "category": "solvent",
+    "risk_level": "moderate",
+    "health_flags": ["skin dryness", "eye irritant"],
+    "regulatory_notes": "Widely used solvent and disinfectant",
+    "sources": [
+      {
+        "title": "PubChem - Ethanol",
+        "url": "https://pubchem.ncbi.nlm.nih.gov/compound/Ethanol"
+      }
+    ]
+  },
+  {
+    "slug": "citric-acid",
+    "name": "Citric Acid",
+    "aliases": ["2-hydroxypropane-1,2,3-tricarboxylic acid"],
+    "category": "acid",
+    "risk_level": "low",
+    "health_flags": ["mild eye irritant"],
+    "regulatory_notes": "Commonly used in descalers and cleaners",
+    "sources": [
+      {
+        "title": "ECHA Substance Information - Citric Acid",
+        "url": "https://echa.europa.eu/substance-information/-/substanceinfo/100.000.683"
+      }
+    ]
+  }
+]

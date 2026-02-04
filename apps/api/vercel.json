@@ -1,0 +1,5 @@
+{
+  "framework": "nextjs",
+  "installCommand": "pnpm install --dir ..",
+  "buildCommand": "pnpm --dir .. --filter api build"
+}

@@ -1,0 +1,101 @@
+slug,Chemical Name,Category,Risk Summary,Regulatory Status
+trichloroethylene-tce,Trichloroethylene (TCE),Carcinogen / Solvent,Classified as a human carcinogen by IARC; linked to liver and kidney cancer,EU banned in many uses; restricted in US workplace exposure
+perchloroethylene-pce,Perchloroethylene (PCE),Carcinogen / Solvent,Dry cleaning solvent; suspected human carcinogen,EU phase-out; EPA restricting in US
+formaldehyde,Formaldehyde,Carcinogen / Preservative,IARC Group 1 carcinogen; causes respiratory irritation,Restricted in EU cosmetics
+1-4-dioxane,"1,4-Dioxane",Contaminant / Solvent,Likely human carcinogen; contaminant in ethoxylated ingredients,Banned in NY above 2ppm
+benzene,Benzene,Carcinogen / Solvent,Confirmed carcinogen; causes leukemia and blood disorders,Strictly controlled in EU and US
+carbon-tetrachloride,Carbon Tetrachloride,Toxic Solvent,Causes liver/kidney damage and CNS depression,Banned in EU; heavily restricted in US
+tetrachloroethylene,Tetrachloroethylene,Carcinogen / Solvent,Used in degreasers; possible carcinogen,Restricted under EU REACH
+acetaldehyde,Acetaldehyde,Probable Carcinogen,Found in fragrance; IARC Group 2B,Restricted in EU cosmetics
+chloroform,Chloroform,Toxic / Probable Carcinogen,"Affects CNS, liver, kidneys",Banned in cosmetics (EU); US monitoring
+ethylene-oxide,Ethylene Oxide,Carcinogen / Sterilant,Gas used in sterilization; highly toxic and carcinogenic,Banned in food use (EU)
+dibutyl-phthalate-dbp,Dibutyl phthalate (DBP),Endocrine Disruptor / Plasticizer,Reproductive toxicity and developmental harm,Banned in EU cosmetics and toys
+diethyl-phthalate-dep,Diethyl phthalate (DEP),Fragrance Carrier / Endocrine Disruptor,Linked to hormone disruption,Use discouraged; limited restriction
+dehp,DEHP,Endocrine Disruptor / Plasticizer,Causes testicular toxicity and endocrine disruption,Banned in toys and cosmetics in EU
+lilial-butylphenyl-methylpropional,Lilial (Butylphenyl Methylpropional),Fragrance / Reproductive Toxin,Reproductive toxicity; banned in EU since 2022,Banned in EU cosmetics
+galaxolide,Galaxolide,Synthetic Musk,Persistent in environment; possible endocrine disruptor,Monitored for restriction (EU)
+tonalide,Tonalide,Synthetic Musk,Bioaccumulative; potential endocrine disruptor,Discouraged in EU products
+benzyl-alcohol,Benzyl Alcohol,Fragrance / Preservative,Can cause skin and eye irritation,Restricted concentration in EU
+benzyl-benzoate,Benzyl Benzoate,Fragrance Fixative,Allergen and skin irritant,Listed allergen in EU
+benzyl-salicylate,Benzyl Salicylate,Fragrance,Allergen and potential endocrine disruptor,Restricted under EU SCCS guidance
+butylphenyl-methylpropional,Butylphenyl Methylpropional,Fragrance,Linked to reproductive toxicity,Banned in EU cosmetics
+cinnamal,Cinnamal,Fragrance / Allergen,Common allergen; causes skin sensitization,Listed as allergen under EU Cosmetics Regulation
+cinnamyl-alcohol,Cinnamyl Alcohol,Fragrance / Allergen,Can cause skin irritation and allergic reaction,Listed allergen in EU
+citral,Citral,Fragrance / Allergen,Irritating to eyes and skin; allergenic potential,Restricted in EU cosmetics
+citronellol,Citronellol,Fragrance / Allergen,Skin sensitizer; common allergen,Listed allergen in EU
+coumarin,Coumarin,Fragrance / Allergen,Toxic to liver in high doses; allergenic,Concentration limits in EU cosmetics
+eugenol,Eugenol,Fragrance / Allergen,Common allergen; sensitizer,Restricted concentration in EU
+oakmoss-extract,Oakmoss Extract,Fragrance / Allergen,Contains atranol; strong sensitizer,Banned in EU due to atranol content
+treemoss-extract,Treemoss Extract,Fragrance / Allergen,Similar allergen profile as Oakmoss,Restricted in EU
+geraniol,Geraniol,Fragrance / Allergen,Skin sensitizer; causes allergic reactions,Listed allergen under EU cosmetics
+hexyl-cinnamal,Hexyl Cinnamal,Fragrance,Allergen and skin irritant,Restricted concentration in EU
+hydroxycitronellal,Hydroxycitronellal,Fragrance,Sensitizer and allergen,EU restrictions on concentration
+isoeugenol,Isoeugenol,Fragrance,Common allergen; restricted use,Listed allergen under EU cosmetics
+limonene,Limonene,Fragrance / Solvent,Air oxidant; respiratory irritant,Must be labeled as allergen in EU
+linalool,Linalool,Fragrance / Solvent,Skin sensitizer upon oxidation,Allergen labeling required in EU
+methyl-2-octynoate,Methyl 2-Octynoate,Fragrance,Skin and eye irritant,Restricted under EU SCCS
+parabens-methyl-ethyl-propyl-butyl,"Parabens (Methyl-, Ethyl-, Propyl-, Butyl-)",Preservatives / Endocrine Disruptors,Hormone disruption; limited in cosmetics,Banned or restricted in EU
+isobutylparaben,Isobutylparaben,Preservative,Reproductive toxicity concern,Banned in EU cosmetics
+isopropylparaben,Isopropylparaben,Preservative,Endocrine disruptor,Banned in EU cosmetics
+bha-butylated-hydroxyanisole,BHA (Butylated Hydroxyanisole),Preservative / Antioxidant,Possible carcinogen; endocrine disruptor,Banned in EU cosmetics
+bht-butylated-hydroxytoluene,BHT (Butylated Hydroxytoluene),Preservative / Antioxidant,Endocrine disruptor and allergen,Use restricted in EU
+triclosan,Triclosan,Antimicrobial / Preservative,Endocrine disruptor; linked to antibiotic resistance,Banned in US soaps; restricted in EU
+triclocarban,Triclocarban,Antimicrobial,Possible endocrine disruptor and environmental hazard,Removed from US consumer soaps
+benzophenone,Benzophenone,UV Absorber / Fragrance,Possible carcinogen and endocrine disruptor,Restricted in cosmetics (EU)
+bisphenol-a-bpa,Bisphenol A (BPA),Plasticizer / Endocrine Disruptor,Interferes with hormone systems,Banned in baby bottles (EU); restricted in food contact
+nonylphenol-ethoxylates-npes,Nonylphenol Ethoxylates (NPEs),Surfactants,Aquatic toxicity; endocrine disruptor,Banned in EU detergents
+nonylphenols,Nonylphenols,Surfactants / Industrial,Toxic to aquatic life; disrupts hormones,Restricted under EU REACH
+methylisothiazolinone-mi,Methylisothiazolinone (MI),Preservative,Strong skin sensitizer; allergenic,Banned in leave-on cosmetics (EU)
+methylchloroisothiazolinone-mci,Methylchloroisothiazolinone (MCI),Preservative,Allergen and irritant,Banned in leave-on products (EU)
+benzisothiazolinone-bit,Benzisothiazolinone (BIT),Preservative,Allergenic potential; irritant,Restricted use (EU)
+quaternium-15,Quaternium-15,Preservative / Formaldehyde Releaser,Releases formaldehyde; allergenic,Banned in EU cosmetics
+bronopol,Bronopol,Preservative,Releases formaldehyde; sensitizer,Restricted concentration in EU
+dmdm-hydantoin,DMDM hydantoin,Preservative,Releases formaldehyde; allergenic,Restricted in EU
+diazolidinyl-urea,Diazolidinyl urea,Preservative,Releases formaldehyde; potential sensitizer,Restricted in EU
+imidazolidinyl-urea,Imidazolidinyl urea,Preservative,Formaldehyde-releasing agent,Restricted in EU cosmetics
+chloromethylisothiazolinone,Chloromethylisothiazolinone,Preservative,Highly sensitizing; toxic to aquatic life,Banned in cosmetics (EU)
+methyldibromo-glutaronitrile,Methyldibromo glutaronitrile,Preservative,Strong allergen and sensitizer,Banned in EU cosmetics
+iodopropynyl-butylcarbamate,Iodopropynyl butylcarbamate,Preservative,Possible neurotoxin and sensitizer,Restricted in EU leave-on products
+glutaraldehyde,Glutaraldehyde,Disinfectant / Preservative,Respiratory and skin sensitizer,Restricted in EU biocides
+zinc-pyrithione,Zinc Pyrithione,Antimicrobial / Preservative,Linked to neurotoxicity,Banned in EU cosmetics
+sodium-hydroxide-lye,Sodium Hydroxide (Lye),Corrosive / pH Adjuster,Caustic; causes burns and tissue damage,Regulated for use and labeling
+potassium-hydroxide,Potassium Hydroxide,Corrosive / Alkali,Caustic; causes severe skin and eye burns,Restricted in cleaning products
+hydrochloric-acid,Hydrochloric Acid,Corrosive / Acid,Can cause burns; dangerous fumes,Regulated concentration for consumer use
+sulfuric-acid,Sulfuric Acid,Corrosive / Acid,Highly corrosive; causes respiratory and skin damage,Restricted in consumer drain cleaners
+phosphoric-acid,Phosphoric Acid,Acid / Descaler,Irritant; harmful if swallowed or inhaled,Regulated in EU and US
+ammonia,Ammonia,Irritant / Volatile Base,Causes respiratory irritation; toxic when mixed with bleach,Concentration-limited in cleaning products
+monoethanolamine-mea,Monoethanolamine (MEA),Surfactant / pH Adjuster,Can cause skin and eye burns; forms nitrosamines,Restricted in cosmetics (EU)
+diethanolamine-dea,Diethanolamine (DEA),Surfactant / Emulsifier,Forms carcinogenic nitrosamines; toxic to liver,Banned in EU cosmetics
+triethanolamine-tea,Triethanolamine (TEA),Surfactant / Emulsifier,May form nitrosamines; skin and eye irritant,Concentration-limited in EU
+ammonium-hydroxide,Ammonium Hydroxide,Alkali / Solvent,"Irritant to skin, eyes, and lungs",Concentration-limited in consumer use
+sodium-hypochlorite-bleach,Sodium Hypochlorite (Bleach),Oxidizer / Disinfectant,Reacts dangerously with acids/ammonia; respiratory irritant,Labeling regulations apply
+2-butoxyethanol,2-Butoxyethanol,Solvent / Surfactant,Linked to blood disorders and respiratory irritation,Restricted in EU cleaning products
+ethylene-glycol-monobutyl-ether,Ethylene Glycol Monobutyl Ether,Solvent,Eye and respiratory irritant; potential reproductive toxin,Regulated exposure limits in US and EU
+sodium-lauryl-sulfate-sls,Sodium Lauryl Sulfate (SLS),Surfactant / Foaming Agent,Skin and eye irritant,Widespread use; warnings for sensitive skin
+sodium-laureth-sulfate-sles,Sodium Laureth Sulfate (SLES),Surfactant,"May contain 1,4-dioxane; milder than SLS",Not banned but monitored for contamination
+linear-alkylbenzene-sulfonates,Linear Alkylbenzene Sulfonates,Surfactants,Aquatic toxicity,Biodegradability required in EU
+per-and-polyfluoroalkyl-substances-pfas,Per- and Polyfluoroalkyl Substances (PFAS),Surfactants / Water-repellent,"Persistent, bioaccumulative, endocrine disruptors",Phased out or banned in EU and US states
+pfoa,PFOA,PFAS,"Linked to cancer, liver damage, and immune harm",Banned in EU; phased out in US
+pfos,PFOS,PFAS,Highly persistent; liver and developmental toxicity,Banned globally under Stockholm Convention
+phosphates,Phosphates,Water Softener / Builder,Cause algal blooms; harmful to aquatic life,Banned in household detergents in EU/US
+quaternary-ammonium-compounds-quats,Quaternary Ammonium Compounds (Quats),Disinfectants / Surfactants,"Linked to asthma, dermatitis, reproductive harm",Restricted in some applications
+benzalkonium-chloride,Benzalkonium Chloride,Disinfectant / Quat,"Linked to skin irritation, respiratory issues",EU and US use limits; sensitizer classification
+didecyldimethylammonium-chloride-ddac,Didecyldimethylammonium chloride (DDAC),Disinfectant / Quat,Irritant and suspected reproductive toxin,Restricted use in biocides (EU)
+alkyl-dimethyl-benzyl-ammonium-chloride,Alkyl dimethyl benzyl ammonium chloride,Disinfectant / Quat,Linked to asthma and skin reactions,Regulated in surface disinfectants
+cetrimonium-chloride,Cetrimonium chloride,Antimicrobial / Conditioner,Eye irritant; potentially toxic to aquatic life,Allowed with concentration limits
+tetrachloroethylene,Tetrachloroethylene,Solvent / Dry cleaning,Probable carcinogen; neurotoxic,Phased out or restricted in EU
+toluene,Toluene,Solvent,Neurotoxicant and developmental hazard,Restricted in cosmetics and paints (EU)
+xylene,Xylene,Solvent,Respiratory and neurotoxic effects,Occupational exposure limits enforced
+turpentine,Turpentine,Solvent / Degreaser,Irritant; may cause CNS effects,Use regulated in consumer products
+c9-11-alketh-8,C9-11 Alketh-8,Surfactant / Detergent,"May contain 1,4-dioxane contaminant",Monitored for safe formulation
+sodium-dichloroisocyanurate-dihydrate,Sodium dichloroisocyanurate dihydrate,Disinfectant / Bleach,"Eye, skin, and respiratory irritant",Use regulated in water treatment
+chloroxylenol,Chloroxylenol,Antimicrobial,Irritant; aquatic toxicity,Restricted in EU biocides
+fd-c-blue-1,FD&C Blue #1,Colorant,Linked to hyperactivity; controversial safety profile,"Approved in US, monitored in EU"
+fd-c-yellow-5,FD&C Yellow #5,Colorant,Linked to allergic reactions and behavioral effects,Warning label required in EU
+fd-c-red-3,FD&C Red #3,Colorant,Possible carcinogen; banned in cosmetics (US),Still allowed in foods (US)
+quinoline,Quinoline,Fragrance / Solvent,Potential mutagen and carcinogen,Prohibited in EU cosmetics
+asbestos,Asbestos,Filler / Contaminant,Known human carcinogen,Banned in most countries
+lead,Lead,Heavy metal / Pigment,Neurotoxic; harmful to children,Banned in paints and cosmetics
+mercury,Mercury,Preservative / Contaminant,Neurotoxin; bioaccumulative,"Banned in cosmetics (EU, US)"
+short-chain-chlorinated-paraffins,Short chain chlorinated paraffins,Flame retardant / Lubricant,"Persistent, bioaccumulative toxins",Banned in EU
+tributyltin-compounds,Tributyltin compounds,Preservative / Antifungal,Endocrine disruptors; marine pollutant,Banned in marine paints globally
