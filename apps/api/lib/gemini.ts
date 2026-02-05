@@ -13,6 +13,7 @@ export interface GeminiScanOutput {
 }
 
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const DEFAULT_VISION_MODEL = process.env.GEMINI_VISION_MODEL || DEFAULT_MODEL;
 
 function getGeminiApiKey(): string {
   const key = process.env.GEMINI_API_KEY;
@@ -56,6 +57,60 @@ async function callGeminiJson<T>(prompt: string): Promise<T> {
         {
           role: "user",
           parts: [{ text: prompt }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 1200
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Gemini API error ${response.status}: ${details}`);
+  }
+
+  const payload = await response.json();
+  const text =
+    payload?.candidates?.[0]?.content?.parts
+      ?.map((part: { text?: string }) => part?.text)
+      .filter(Boolean)
+      .join("\n") || "";
+
+  return safeJsonParse<T>(text);
+}
+
+async function callGeminiWithImages<T>(input: {
+  prompt: string;
+  images: Array<{ data: string; mimeType: string }>;
+}): Promise<T> {
+  const apiKey = getGeminiApiKey();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_VISION_MODEL}:generateContent`;
+
+  const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+    { text: input.prompt }
+  ];
+  for (const image of input.images) {
+    parts.push({
+      inlineData: {
+        mimeType: image.mimeType || "image/jpeg",
+        data: image.data
+      }
+    });
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-goog-api-key": apiKey
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts
         }
       ],
       generationConfig: {
@@ -129,4 +184,32 @@ export async function analyzeWithGemini(input: {
 
   const output = await callGeminiJson<unknown>(prompt);
   return normalizeGeminiOutput(output);
+}
+
+export async function analyzeImagesForIngredients(
+  images: Array<{ data: string; mimeType: string; label?: string }>
+): Promise<{ ingredients: string[]; notes: string[] }> {
+  const prompt =
+    "You extract ingredient lists from product label photos. " +
+    "Return only valid JSON with this schema: " +
+    '{"ingredients":["string"],"notes":["string"]}. ' +
+    "Only include ingredients visible on the label. If none visible, return an empty list.";
+
+  const output = await callGeminiWithImages<unknown>({
+    prompt,
+    images: images.map((image) => ({
+      data: image.data,
+      mimeType: image.mimeType || "image/jpeg"
+    }))
+  });
+
+  const record = (output || {}) as { ingredients?: unknown; notes?: unknown };
+  const ingredients = Array.isArray(record.ingredients)
+    ? record.ingredients.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  const notes = Array.isArray(record.notes)
+    ? record.notes.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+
+  return { ingredients, notes };
 }
