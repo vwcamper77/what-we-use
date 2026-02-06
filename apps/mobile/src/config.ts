@@ -1,11 +1,25 @@
 import Constants from "expo-constants";
 
-const rawBaseUrl =
-  (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl ||
-  process.env.EXPO_PUBLIC_API_URL ||
-  "";
+type ExtraConfig = { apiBaseUrl?: string } | undefined;
 
-export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
+function resolveApiBaseUrl(): string {
+  const extraFromExpoConfig = (Constants.expoConfig?.extra as ExtraConfig)?.apiBaseUrl;
+  const extraFromManifest = ((Constants as { manifest?: { extra?: ExtraConfig } }).manifest?.extra as ExtraConfig)
+    ?.apiBaseUrl;
+  const extraFromManifest2 = (
+    (Constants as { manifest2?: { extra?: ExtraConfig } }).manifest2?.extra as ExtraConfig
+  )?.apiBaseUrl;
+
+  return (
+    extraFromExpoConfig ||
+    extraFromManifest ||
+    extraFromManifest2 ||
+    process.env.EXPO_PUBLIC_API_URL ||
+    ""
+  );
+}
+
+export const API_BASE_URL = resolveApiBaseUrl().replace(/\/+$/, "");
 
 export function requireApiBaseUrl(): string {
   if (!API_BASE_URL) {
