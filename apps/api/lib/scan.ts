@@ -98,7 +98,9 @@ export async function createScanResult(input: {
               name: fromStore.name,
               slug: fromStore.slug,
               risk: normalizeRisk(fromStore.risk),
-              notes: fromStore.notes || ai?.notes
+              notes: fromStore.notes || ai?.notes,
+              regulatoryNotes: fromStore.regulatoryNotes || undefined,
+              sources: fromStore.sources.length ? fromStore.sources : undefined
             };
           }
         } catch {

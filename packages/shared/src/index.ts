@@ -1,10 +1,17 @@
 export type IngredientRisk = "safe" | "caution" | "avoid";
 
+export interface SourceRef {
+  title?: string;
+  url?: string;
+}
+
 export interface Ingredient {
   name: string;
   slug: string;
   risk: IngredientRisk;
   notes?: string;
+  regulatoryNotes?: string;
+  sources?: SourceRef[];
 }
 
 export interface ScanResult {

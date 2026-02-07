@@ -12,6 +12,11 @@ export interface GeminiScanOutput {
   summary: string;
 }
 
+export interface GeminiChatOutput {
+  answer: string;
+  sourceTitles?: string[];
+}
+
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const DEFAULT_VISION_MODEL = process.env.GEMINI_VISION_MODEL || DEFAULT_MODEL;
 
@@ -42,7 +47,10 @@ function safeJsonParse<T>(text: string): T {
   }
 }
 
-async function callGeminiJson<T>(prompt: string): Promise<T> {
+async function callGeminiJson<T>(
+  prompt: string,
+  options?: { temperature?: number; maxOutputTokens?: number }
+): Promise<T> {
   const apiKey = getGeminiApiKey();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`;
 
@@ -60,8 +68,8 @@ async function callGeminiJson<T>(prompt: string): Promise<T> {
         }
       ],
       generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 1200
+        temperature: options?.temperature ?? 0.1,
+        maxOutputTokens: options?.maxOutputTokens ?? 1200
       }
     })
   });
@@ -207,4 +215,35 @@ export async function analyzeImagesForScan(
   });
 
   return normalizeGeminiOutput(output);
+}
+
+export async function answerQuestionWithContext(input: {
+  question: string;
+  context: string;
+  sourceTitles: string[];
+}): Promise<GeminiChatOutput> {
+  const prompt =
+    "You answer questions about household cleaner ingredients. " +
+    "Use only the provided context. " +
+    "If the answer is not supported by the context, say you don't have proof and suggest checking sources. " +
+    "Return only valid JSON with this schema: " +
+    '{"answer":"string","sourceTitles":["string"]}. ' +
+    "Only include sourceTitles from the provided Sources list. " +
+    "Keep the answer short and practical. " +
+    `Context:\n${input.context}\n\nSources:\n${input.sourceTitles
+      .map((title) => `- ${title}`)
+      .join("\n")}\n\nQuestion: ${input.question}`;
+
+  const output = await callGeminiJson<unknown>(prompt, {
+    temperature: 0.2,
+    maxOutputTokens: 600
+  });
+
+  const record = (output || {}) as { answer?: unknown; sourceTitles?: unknown };
+  const answer = String(record.answer || "").trim();
+  const sourceTitles = Array.isArray(record.sourceTitles)
+    ? record.sourceTitles.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+
+  return { answer, sourceTitles };
 }

@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import admin from "firebase-admin";
 
-import { Ingredient, normalizeRisk, slugify } from "@what-we-use/shared";
+import { Ingredient, SourceRef, normalizeRisk, slugify } from "@what-we-use/shared";
 
 type ServiceAccount = admin.ServiceAccount;
 
@@ -61,12 +61,29 @@ function toStringArray(value: unknown): string[] {
   return value.map((item) => String(item || "").trim()).filter(Boolean);
 }
 
+function toSourceArray(value: unknown): SourceRef[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as Record<string, unknown>;
+      const title = typeof record.title === "string" ? record.title.trim() : "";
+      const url = typeof record.url === "string" ? record.url.trim() : "";
+      if (!title && !url) return null;
+      return {
+        ...(title ? { title } : {}),
+        ...(url ? { url } : {})
+      } as SourceRef;
+    })
+    .filter((item): item is SourceRef => item !== null);
+}
+
 export interface IngredientRecord extends Ingredient {
   aliases: string[];
   category: string;
   healthFlags: string[];
   regulatoryNotes: string;
-  sources: unknown[];
+  sources: SourceRef[];
 }
 
 export function mapIngredientRecord(slug: string, data: Record<string, unknown>): IngredientRecord {
@@ -79,7 +96,7 @@ export function mapIngredientRecord(slug: string, data: Record<string, unknown>)
     category: String(data.category || "other"),
     healthFlags: toStringArray(data.health_flags),
     regulatoryNotes: String(data.regulatory_notes || ""),
-    sources: Array.isArray(data.sources) ? data.sources : []
+    sources: toSourceArray(data.sources)
   };
 }
 

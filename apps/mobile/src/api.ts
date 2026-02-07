@@ -1,4 +1,4 @@
-import { ScanResult } from "@what-we-use/shared";
+import { ScanResult, SourceRef } from "@what-we-use/shared";
 
 import { requireApiBaseUrl } from "./config";
 
@@ -81,4 +81,32 @@ export async function scanFromPhotos(input: {
   }
 
   return payload as ScanResult;
+}
+
+export async function askAboutScan(input: {
+  question: string;
+  scan: ScanResult;
+}): Promise<{ answer: string; sources: SourceRef[] }> {
+  const baseUrl = requireApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      question: input.question,
+      scan: input.scan
+    })
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload?.details || payload?.error || "Question failed.");
+  }
+
+  return {
+    answer: String(payload?.answer || ""),
+    sources: Array.isArray(payload?.sources) ? payload.sources : []
+  };
 }

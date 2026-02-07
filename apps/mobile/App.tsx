@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -15,7 +16,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 
 import { RISK_LABELS, slugify } from "@what-we-use/shared";
 
-import { scanFromPhotos, scanFromText } from "./src/api";
+import { askAboutScan, scanFromPhotos, scanFromText } from "./src/api";
 import { API_BASE_URL } from "./src/config";
 
 export default function App(): JSX.Element {
@@ -26,8 +27,21 @@ export default function App(): JSX.Element {
   const [result, setResult] = useState<{
     summary: string;
     overallRisk: keyof typeof RISK_LABELS;
-    ingredients: Array<{ name: string; risk: keyof typeof RISK_LABELS; notes?: string }>;
+    ingredients: Array<{
+      name: string;
+      risk: keyof typeof RISK_LABELS;
+      notes?: string;
+      regulatoryNotes?: string;
+      sources?: Array<{ title?: string; url?: string }>;
+    }>;
   } | null>(null);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [answerSources, setAnswerSources] = useState<
+    Array<{ title?: string; url?: string }>
+  >([]);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
 
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView | null>(null);
@@ -39,12 +53,20 @@ export default function App(): JSX.Element {
     () => Boolean(frontUri && backUri) && !loading,
     [frontUri, backUri, loading]
   );
+  const canAsk = useMemo(
+    () => Boolean(result) && question.trim().length > 0 && !asking,
+    [asking, question, result]
+  );
 
   async function onScan(): Promise<void> {
     try {
       setLoading(true);
       setError(null);
       setResult(null);
+      setQuestion("");
+      setAnswer(null);
+      setAnswerSources([]);
+      setChatError(null);
       const payload = await scanFromText(text.trim());
       setResult(payload);
     } catch (scanError) {
@@ -68,6 +90,10 @@ export default function App(): JSX.Element {
       setLoading(true);
       setError("Uploading photos...");
       setResult(null);
+      setQuestion("");
+      setAnswer(null);
+      setAnswerSources([]);
+      setChatError(null);
       const payload = await scanFromPhotos({ frontUri, backUri });
       setResult(payload);
       setError(null);
@@ -75,6 +101,26 @@ export default function App(): JSX.Element {
       setError(scanError instanceof Error ? scanError.message : "Image scan failed.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function onAsk(): Promise<void> {
+    if (!result) return;
+    try {
+      setAsking(true);
+      setChatError(null);
+      setAnswer(null);
+      setAnswerSources([]);
+      const response = await askAboutScan({
+        question: question.trim(),
+        scan: result
+      });
+      setAnswer(response.answer);
+      setAnswerSources(response.sources || []);
+    } catch (chatError) {
+      setChatError(chatError instanceof Error ? chatError.message : "Question failed.");
+    } finally {
+      setAsking(false);
     }
   }
 
@@ -199,8 +245,77 @@ export default function App(): JSX.Element {
                 <Text style={styles.ingredientName}>{ingredient.name}</Text>
                 <Text style={styles.ingredientRisk}>{RISK_LABELS[ingredient.risk] || ingredient.risk}</Text>
                 {ingredient.notes ? <Text style={styles.notes}>{ingredient.notes}</Text> : null}
+                {ingredient.regulatoryNotes ? (
+                  <Text style={styles.notes}>Regulatory: {ingredient.regulatoryNotes}</Text>
+                ) : null}
+                {ingredient.sources && ingredient.sources.length ? (
+                  <View style={styles.sourcesBlock}>
+                    <Text style={styles.sourcesLabel}>Sources</Text>
+                    {ingredient.sources.map((source, index) => {
+                      const label = source.title || source.url || `Source ${index + 1}`;
+                      return (
+                        <Pressable
+                          key={`${label}-${index}`}
+                          onPress={() => {
+                            if (source.url) {
+                              Linking.openURL(source.url);
+                            }
+                          }}
+                        >
+                          <Text style={styles.sourceLink}>{label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : null}
               </View>
             ))}
+          </View>
+        ) : null}
+
+        {result ? (
+          <View style={styles.chatCard}>
+            <Text style={styles.chatTitle}>Ask About This Product</Text>
+            <TextInput
+              value={question}
+              onChangeText={setQuestion}
+              style={styles.chatInput}
+              placeholder="Ask about ingredients, risks, or alternatives"
+              autoCapitalize="sentences"
+            />
+            <Pressable
+              style={[styles.button, !canAsk && styles.buttonDisabled]}
+              onPress={onAsk}
+              disabled={!canAsk}
+            >
+              {asking ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Ask</Text>}
+            </Pressable>
+            {chatError ? <Text style={styles.error}>{chatError}</Text> : null}
+            {answer ? (
+              <View style={styles.answerBlock}>
+                <Text style={styles.answerText}>{answer}</Text>
+                {answerSources.length ? (
+                  <View style={styles.sourcesBlock}>
+                    <Text style={styles.sourcesLabel}>Sources</Text>
+                    {answerSources.map((source, index) => {
+                      const label = source.title || source.url || `Source ${index + 1}`;
+                      return (
+                        <Pressable
+                          key={`${label}-${index}`}
+                          onPress={() => {
+                            if (source.url) {
+                              Linking.openURL(source.url);
+                            }
+                          }}
+                        >
+                          <Text style={styles.sourceLink}>{label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -374,5 +489,47 @@ const styles = StyleSheet.create({
   },
   notes: {
     color: "#475569"
+  },
+  sourcesBlock: {
+    gap: 4,
+    marginTop: 4
+  },
+  sourcesLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569"
+  },
+  sourceLink: {
+    color: "#2563eb",
+    textDecorationLine: "underline"
+  },
+  chatCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 14,
+    gap: 10
+  },
+  chatTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  chatInput: {
+    minHeight: 80,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    textAlignVertical: "top"
+  },
+  answerBlock: {
+    gap: 8
+  },
+  answerText: {
+    color: "#0f172a"
   }
 });
