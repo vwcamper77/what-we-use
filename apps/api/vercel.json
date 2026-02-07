@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
-  "installCommand": "pnpm --dir .. --filter api... install",
-  "buildCommand": "pnpm --dir .. --filter api... build"
+  "installCommand": "pnpm --config.node-linker=isolated --dir .. --filter api... install",
+  "buildCommand": "pnpm --config.node-linker=isolated --dir .. --filter api... build"
 }
