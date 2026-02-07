@@ -20,7 +20,7 @@ const config: ExpoConfig = {
   android: {
     package: "com.whatweuse.mobile"
   },
-  plugins: ["react-native-mlkit-ocr"],
+  plugins: [],
   extra: {
     apiBaseUrl: API_BASE_URL,
     eas: {

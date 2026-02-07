@@ -1,7 +1,11 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -12,10 +16,12 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImageManipulator from "expo-image-manipulator";
 
-import { RISK_LABELS, slugify } from "@what-we-use/shared";
+import { RISK_LABELS, ScanResult, slugify } from "@what-we-use/shared";
 
-import { scanFromText } from "./src/api";
+import { askAboutScan, scanFromText } from "./src/api";
 import { API_BASE_URL } from "./src/config";
 import { runOcr } from "./src/services/ocr";
 
@@ -23,6 +29,22 @@ const MIN_OCR_LENGTH = 120;
 const MIN_OCR_CONFIDENCE = 0.45;
 const OCR_KEYWORD_REGEX = /\b(ingredients|contains|composition)\b/i;
 const WARNING_REGEX = /(warning|caution|danger|keep out of reach|first aid|poison|harmful)/i;
+
+const HISTORY_STORAGE_KEY = "scan_history_v1";
+const MAX_HISTORY = 20;
+const THUMBNAIL_WIDTH = 480;
+
+type HistoryEntry = {
+  id: string;
+  createdAt: number;
+  mode: "camera" | "text";
+  result: ScanResult;
+  thumbnails?: {
+    front?: string;
+    back?: string;
+  };
+  rawText?: string;
+};
 
 type OcrEvaluation = {
   ok: boolean;
@@ -142,11 +164,14 @@ export default function App(): JSX.Element {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<{
-    summary: string;
-    overallRisk: keyof typeof RISK_LABELS;
-    ingredients: Array<{ name: string; risk: keyof typeof RISK_LABELS; notes?: string }>;
-  } | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [answerSources, setAnswerSources] = useState<Array<{ title?: string; url?: string }>>([]);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView | null>(null);
@@ -154,6 +179,8 @@ export default function App(): JSX.Element {
 
   const [frontUri, setFrontUri] = useState<string | null>(null);
   const [backUri, setBackUri] = useState<string | null>(null);
+  const [frontThumbUri, setFrontThumbUri] = useState<string | null>(null);
+  const [backThumbUri, setBackThumbUri] = useState<string | null>(null);
   const [captureTarget, setCaptureTarget] = useState<"front" | "back">("back");
   const [torchOn, setTorchOn] = useState(false);
 
@@ -178,6 +205,10 @@ export default function App(): JSX.Element {
     () => Boolean(backUri) && ocrAccepted && !isBusy,
     [backUri, ocrAccepted, isBusy]
   );
+  const canAsk = useMemo(
+    () => Boolean(result) && question.trim().length > 0 && !asking,
+    [asking, question, result]
+  );
 
   const ocrPreview = useMemo(() => {
     if (!ocrText) return "";
@@ -185,14 +216,52 @@ export default function App(): JSX.Element {
     return ocrText.length > 500 ? `${trimmed}...` : trimmed;
   }, [ocrText]);
 
+  useEffect(() => {
+    async function loadHistory(): Promise<void> {
+      try {
+        const raw = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as HistoryEntry[];
+          if (Array.isArray(parsed)) {
+            setHistory(parsed);
+          }
+        }
+      } catch {
+        // Ignore history load errors.
+      } finally {
+        setHistoryLoaded(true);
+      }
+    }
+
+    loadHistory();
+  }, []);
+
+  useEffect(() => {
+    if (!historyLoaded) return;
+    AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history)).catch(() => {
+      // Ignore history persistence errors.
+    });
+  }, [history, historyLoaded]);
+
   async function onScan(): Promise<void> {
     try {
       setIsAnalyzing(true);
       setError(null);
       setStatus("Analyzing text...");
       setResult(null);
+      setQuestion("");
+      setAnswer(null);
+      setAnswerSources([]);
+      setChatError(null);
       const payload = await scanFromText(text.trim());
       setResult(payload);
+      addToHistory({
+        id: String(Date.now()),
+        createdAt: Date.now(),
+        mode: "text",
+        result: payload,
+        rawText: text.trim()
+      });
     } catch (scanError) {
       setError(toFriendlyErrorMessage(scanError));
     } finally {
@@ -257,13 +326,19 @@ export default function App(): JSX.Element {
 
       if (!photo?.uri) return;
 
+      const thumbnailPromise = createThumbnail(photo.uri);
+
       if (kind === "front") {
         setFrontUri(photo.uri);
+        const frontThumb = await thumbnailPromise;
+        setFrontThumbUri(frontThumb);
         if (!productName.trim()) {
           void runFrontOcr(photo.uri);
         }
       } else {
         setBackUri(photo.uri);
+        const backThumb = await thumbnailPromise;
+        setBackThumbUri(backThumb);
         setResult(null);
         await runBackOcr(photo.uri);
       }
@@ -280,6 +355,10 @@ export default function App(): JSX.Element {
       setError(null);
       setStatus("Analyzing ingredients...");
       setResult(null);
+      setQuestion("");
+      setAnswer(null);
+      setAnswerSources([]);
+      setChatError(null);
 
       const analysisText = buildAnalysisText({
         productName,
@@ -288,6 +367,16 @@ export default function App(): JSX.Element {
 
       const payload = await scanFromText(analysisText);
       setResult(payload);
+      addToHistory({
+        id: String(Date.now()),
+        createdAt: Date.now(),
+        mode: "camera",
+        result: payload,
+        thumbnails: {
+          ...(frontThumbUri ? { front: frontThumbUri } : {}),
+          ...(backThumbUri ? { back: backThumbUri } : {})
+        }
+      });
     } catch (scanError) {
       setError(toFriendlyErrorMessage(scanError));
     } finally {
@@ -296,8 +385,89 @@ export default function App(): JSX.Element {
     }
   }
 
+  async function onAsk(): Promise<void> {
+    if (!result) return;
+    try {
+      setAsking(true);
+      setChatError(null);
+      setAnswer(null);
+      setAnswerSources([]);
+      const response = await askAboutScan({
+        question: question.trim(),
+        scan: result
+      });
+      setAnswer(response.answer);
+      setAnswerSources(response.sources || []);
+      setQuestion("");
+    } catch (chatError) {
+      setChatError(chatError instanceof Error ? chatError.message : "Question failed.");
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  function addToHistory(entry: HistoryEntry): void {
+    setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY));
+  }
+
+  function loadHistory(entry: HistoryEntry): void {
+    setResult(entry.result);
+    setQuestion("");
+    setAnswer(null);
+    setAnswerSources([]);
+    setChatError(null);
+    setStatus(null);
+    setError(null);
+    clearCaptureState();
+    setMode(entry.mode);
+    setText(entry.mode === "text" ? entry.rawText || "" : "");
+  }
+
+  function clearCaptureState(): void {
+    setFrontUri(null);
+    setBackUri(null);
+    setFrontThumbUri(null);
+    setBackThumbUri(null);
+    setProductName("");
+    setOcrText("");
+    setOcrConfidence(null);
+    setOcrStatus("idle");
+    setOcrAccepted(false);
+    setOcrError(null);
+    setCaptureTarget("back");
+  }
+
+  function resetScan(): void {
+    setMode("camera");
+    setText("");
+    setStatus(null);
+    setQuestion("");
+    setAnswer(null);
+    setAnswerSources([]);
+    setChatError(null);
+    setResult(null);
+    setError(null);
+    clearCaptureState();
+  }
+
+  async function createThumbnail(uri: string): Promise<string | null> {
+    try {
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: THUMBNAIL_WIDTH } }],
+        {
+          compress: 0.6,
+          format: ImageManipulator.SaveFormat.JPEG
+        }
+      );
+      return result.uri || null;
+    } catch {
+      return null;
+    }
+  }
   function retakeBack(): void {
     setBackUri(null);
+    setBackThumbUri(null);
     setOcrText("");
     setOcrConfidence(null);
     setOcrStatus("idle");
@@ -308,22 +478,23 @@ export default function App(): JSX.Element {
   }
 
   function resetPhotos(): void {
-    setFrontUri(null);
-    setBackUri(null);
-    setProductName("");
-    setOcrText("");
-    setOcrConfidence(null);
-    setOcrStatus("idle");
-    setOcrAccepted(false);
-    setOcrError(null);
+    clearCaptureState();
     setResult(null);
     setError(null);
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.safeArea}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
         <Text style={styles.title}>What We Use</Text>
         <Text style={styles.subtitle}>API: {API_BASE_URL || "Missing EXPO_PUBLIC_API_URL"}</Text>
 
@@ -341,6 +512,9 @@ export default function App(): JSX.Element {
             onPress={() => setMode("text")}
           >
             <Text style={[styles.chipText, mode === "text" && styles.chipTextActive]}>Text</Text>
+          </Pressable>
+          <Pressable style={styles.outlineButton} onPress={resetScan}>
+            <Text style={styles.outlineButtonText}>New Scan</Text>
           </Pressable>
         </View>
 
@@ -434,16 +608,22 @@ export default function App(): JSX.Element {
                 <View style={styles.previewRow}>
                   <View style={styles.previewBox}>
                     <Text style={styles.previewLabel}>Front</Text>
-                    {frontUri ? (
-                      <Image source={{ uri: frontUri }} style={styles.previewImage} />
+                    {frontThumbUri || frontUri ? (
+                      <Image
+                        source={{ uri: frontThumbUri || frontUri || "" }}
+                        style={styles.previewImage}
+                      />
                     ) : (
                       <Text style={styles.previewEmpty}>Optional</Text>
                     )}
                   </View>
                   <View style={styles.previewBox}>
                     <Text style={styles.previewLabel}>Back</Text>
-                    {backUri ? (
-                      <Image source={{ uri: backUri }} style={styles.previewImage} />
+                    {backThumbUri || backUri ? (
+                      <Image
+                        source={{ uri: backThumbUri || backUri || "" }}
+                        style={styles.previewImage}
+                      />
                     ) : (
                       <Text style={styles.previewEmpty}>Required</Text>
                     )}
@@ -562,12 +742,128 @@ export default function App(): JSX.Element {
                   {RISK_LABELS[ingredient.risk] || ingredient.risk}
                 </Text>
                 {ingredient.notes ? <Text style={styles.notes}>{ingredient.notes}</Text> : null}
+                {ingredient.regulatoryNotes ? (
+                  <Text style={styles.notes}>Regulatory: {ingredient.regulatoryNotes}</Text>
+                ) : null}
+                {ingredient.sources && ingredient.sources.length ? (
+                  <View style={styles.sourcesBlock}>
+                    <Text style={styles.sourcesLabel}>Sources</Text>
+                    {ingredient.sources.map((source, index) => {
+                      const label = source.title || source.url || `Source ${index + 1}`;
+                      return (
+                        <Pressable
+                          key={`${label}-${index}`}
+                          onPress={() => {
+                            if (source.url) {
+                              Linking.openURL(source.url);
+                            }
+                          }}
+                        >
+                          <Text style={styles.sourceLink}>{label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : null}
               </View>
             ))}
           </View>
         ) : null}
-      </ScrollView>
-    </SafeAreaView>
+
+        {result ? (
+          <View style={styles.chatCard}>
+            <Text style={styles.chatTitle}>Ask About This Product</Text>
+            <TextInput
+              multiline
+              value={question}
+              onChangeText={setQuestion}
+              style={styles.chatInput}
+              placeholder="Ask about ingredients, risks, or alternatives"
+              autoCapitalize="sentences"
+            />
+            <Pressable
+              style={[styles.button, !canAsk && styles.buttonDisabled]}
+              onPress={() => {
+                Keyboard.dismiss();
+                onAsk();
+              }}
+              disabled={!canAsk}
+            >
+              {asking ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Ask</Text>
+              )}
+            </Pressable>
+            {chatError ? <Text style={styles.error}>{chatError}</Text> : null}
+            {answer ? (
+              <View style={styles.answerBlock}>
+                <Text style={styles.answerText}>{answer}</Text>
+                {answerSources.length ? (
+                  <View style={styles.sourcesBlock}>
+                    <Text style={styles.sourcesLabel}>Sources</Text>
+                    {answerSources.map((source, index) => {
+                      const label = source.title || source.url || `Source ${index + 1}`;
+                      return (
+                        <Pressable
+                          key={`${label}-${index}`}
+                          onPress={() => {
+                            if (source.url) {
+                              Linking.openURL(source.url);
+                            }
+                          }}
+                        >
+                          <Text style={styles.sourceLink}>{label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        <View style={styles.historyCard}>
+          <Text style={styles.historyTitle}>Recent Scans</Text>
+          {history.length === 0 ? (
+            <Text style={styles.historyEmpty}>No scans yet.</Text>
+          ) : (
+            history.map((entry) => {
+              const thumb = entry.thumbnails?.front || entry.thumbnails?.back;
+              const dateLabel = new Date(entry.createdAt).toLocaleDateString();
+              return (
+                <Pressable
+                  key={entry.id}
+                  style={styles.historyItem}
+                  onPress={() => loadHistory(entry)}
+                >
+                  {thumb ? (
+                    <Image source={{ uri: thumb }} style={styles.historyThumb} />
+                  ) : (
+                    <View style={styles.historyThumbPlaceholder}>
+                      <Text style={styles.historyThumbText}>
+                        {entry.mode === "text" ? "TXT" : "IMG"}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.historyMeta}>
+                    <Text style={styles.historySummary} numberOfLines={2}>
+                      {entry.result.summary || "Scan result"}
+                    </Text>
+                    <Text style={styles.historySub}>
+                      {RISK_LABELS[entry.result.overallRisk] || entry.result.overallRisk} -{" "}
+                      {dateLabel}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -839,5 +1135,118 @@ const styles = StyleSheet.create({
   },
   notes: {
     color: "#475569"
+  },
+  sourcesBlock: {
+    gap: 4,
+    marginTop: 4
+  },
+  sourcesLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569"
+  },
+  sourceLink: {
+    color: "#2563eb",
+    textDecorationLine: "underline"
+  },
+  chatCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 14,
+    gap: 10
+  },
+  chatTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  chatInput: {
+    minHeight: 80,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    textAlignVertical: "top"
+  },
+  answerBlock: {
+    gap: 8
+  },
+  answerText: {
+    color: "#0f172a"
+  },
+  historyCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 14,
+    gap: 12
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  historyEmpty: {
+    color: "#64748b"
+  },
+  historyItem: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0"
+  },
+  historyThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    backgroundColor: "#e2e8f0"
+  },
+  historyThumbPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    backgroundColor: "#e2e8f0",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  historyThumbText: {
+    fontWeight: "700",
+    color: "#475569"
+  },
+  historyMeta: {
+    flex: 1,
+    gap: 4
+  },
+  historySummary: {
+    color: "#0f172a",
+    fontWeight: "600"
+  },
+  historySub: {
+    color: "#64748b"
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
