@@ -1,5 +1,6 @@
+﻿import { NextRequest } from "next/server";
+
 import { corsPreflightResponse, jsonWithCors } from "@/lib/cors";
-import { analyzeImagesForScan } from "@/lib/gemini";
 import { createScanResult } from "@/lib/scan";
 
 export const runtime = "nodejs";
@@ -9,53 +10,58 @@ export async function OPTIONS(): Promise<Response> {
   return corsPreflightResponse();
 }
 
-function toBase64(buffer: ArrayBuffer): string {
-  return Buffer.from(buffer).toString("base64");
-}
-
-export async function POST(request: Request): Promise<Response> {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
-    const formData = await request.formData();
-    const frontFile = formData.get("image_front");
-    const backFile = formData.get("image_back");
+    const body = (await request.json()) as {
+      text?: unknown;
+      ingredients?: unknown;
+      productName?: unknown;
+      warningText?: unknown;
+    };
 
-    if (!(frontFile instanceof File) || !(backFile instanceof File)) {
+    const text = typeof body?.text === "string" ? body.text.trim() : "";
+    const ingredients = Array.isArray(body?.ingredients)
+      ? body.ingredients.map((item) => String(item || "").trim()).filter(Boolean)
+      : [];
+    const productName = typeof body?.productName === "string" ? body.productName.trim() : "";
+    const warningText = typeof body?.warningText === "string" ? body.warningText.trim() : "";
+
+    const combinedText = [
+      productName ? `Product name: ${productName}` : "",
+      text ? `Ingredients label text:\n${text}` : "",
+      warningText ? `Warnings or cautions:\n${warningText}` : ""
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    if (!combinedText && ingredients.length === 0) {
       return jsonWithCors(
         {
-          error: "Missing images. Provide image_front and image_back."
+          error: "Body must include either text:string or ingredients:string[]."
         },
         { status: 400 }
       );
     }
 
-    const [frontBuffer, backBuffer] = await Promise.all([
-      frontFile.arrayBuffer(),
-      backFile.arrayBuffer()
-    ]);
-
-    const geminiData = await analyzeImagesForScan([
-      {
-        label: "front",
-        mimeType: frontFile.type || "image/jpeg",
-        data: toBase64(frontBuffer)
-      },
-      {
-        label: "back",
-        mimeType: backFile.type || "image/jpeg",
-        data: toBase64(backBuffer)
-      }
-    ]);
-
     const result = await createScanResult({
-      ingredients: geminiData.ingredients.map((item) => item.name),
-      geminiData
+      text: combinedText || undefined,
+      ingredients: ingredients.length ? ingredients : undefined
     });
 
     return jsonWithCors(result);
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return jsonWithCors(
+        {
+          error: "Request body must be valid JSON."
+        },
+        { status: 400 }
+      );
+    }
+
     return jsonWithCors(
       {
-        error: "Failed to analyze images.",
+        error: "Failed to analyze text.",
         details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }

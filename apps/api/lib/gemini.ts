@@ -1,4 +1,4 @@
-import { normalizeRisk, slugify } from "@what-we-use/shared";
+﻿import { normalizeRisk, slugify } from "@what-we-use/shared";
 
 export interface GeminiIngredient {
   name: string;
@@ -19,6 +19,9 @@ export interface GeminiChatOutput {
 
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const DEFAULT_VISION_MODEL = process.env.GEMINI_VISION_MODEL || DEFAULT_MODEL;
+
+const RETRYABLE_STATUS = new Set([429]);
+const MAX_RETRIES = 2;
 
 function getGeminiApiKey(): string {
   const key = process.env.GEMINI_API_KEY;
@@ -47,6 +50,44 @@ function safeJsonParse<T>(text: string): T {
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getRetryDelayMs(attempt: number, retryAfter: string | null): number {
+  const parsed = retryAfter ? Number(retryAfter) : Number.NaN;
+  if (!Number.isNaN(parsed) && parsed > 0) {
+    return parsed * 1000;
+  }
+  const base = 600;
+  const jitter = Math.floor(Math.random() * 250);
+  return base * 2 ** attempt + jitter;
+}
+
+async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  let attempt = 0;
+  while (true) {
+    const response = await fetch(url, options);
+    if (!RETRYABLE_STATUS.has(response.status) || attempt >= MAX_RETRIES) {
+      return response;
+    }
+    const delayMs = getRetryDelayMs(attempt, response.headers.get("retry-after"));
+    await sleep(delayMs);
+    attempt += 1;
+  }
+}
+
+function toFriendlyGeminiError(status: number, details: string): string {
+  const upper = details.toUpperCase();
+  if (status === 429 || upper.includes("RESOURCE_EXHAUSTED")) {
+    return "The analysis service is busy right now. Please try again in a moment.";
+  }
+  if (status >= 500) {
+    return "The analysis service is temporarily unavailable. Please try again in a moment.";
+  }
+  return `Gemini API error ${status}: ${details}`;
+}
+
 async function callGeminiJson<T>(
   prompt: string,
   options?: { temperature?: number; maxOutputTokens?: number }
@@ -54,7 +95,7 @@ async function callGeminiJson<T>(
   const apiKey = getGeminiApiKey();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -76,7 +117,7 @@ async function callGeminiJson<T>(
 
   if (!response.ok) {
     const details = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${details}`);
+    throw new Error(toFriendlyGeminiError(response.status, details));
   }
 
   const payload = await response.json();
@@ -109,7 +150,7 @@ async function callGeminiWithImages<T>(input: {
     });
   }
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -131,7 +172,7 @@ async function callGeminiWithImages<T>(input: {
 
   if (!response.ok) {
     const details = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${details}`);
+    throw new Error(toFriendlyGeminiError(response.status, details));
   }
 
   const payload = await response.json();
