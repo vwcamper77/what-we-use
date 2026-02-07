@@ -1,5 +1,5 @@
 import { corsPreflightResponse, jsonWithCors } from "@/lib/cors";
-import { analyzeImagesForIngredients } from "@/lib/gemini";
+import { analyzeImagesForScan } from "@/lib/gemini";
 import { createScanResult } from "@/lib/scan";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
       backFile.arrayBuffer()
     ]);
 
-    const extracted = await analyzeImagesForIngredients([
+    const geminiData = await analyzeImagesForScan([
       {
         label: "front",
         mimeType: frontFile.type || "image/jpeg",
@@ -47,7 +47,8 @@ export async function POST(request: Request): Promise<Response> {
     ]);
 
     const result = await createScanResult({
-      ingredients: extracted.ingredients
+      ingredients: geminiData.ingredients.map((item) => item.name),
+      geminiData
     });
 
     return jsonWithCors(result);

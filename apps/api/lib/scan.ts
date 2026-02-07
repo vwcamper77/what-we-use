@@ -29,18 +29,22 @@ function summarizeFromIngredients(ingredients: Ingredient[]): string {
 export async function createScanResult(input: {
   text?: string;
   ingredients?: string[];
+  geminiData?: GeminiScanOutput;
+  skipAi?: boolean;
 }): Promise<ScanResult> {
   const text = String(input.text || "").trim();
   const directIngredients = Array.isArray(input.ingredients)
     ? input.ingredients.map((item) => String(item || "").trim()).filter(Boolean)
     : [];
 
-  let geminiData: GeminiScanOutput = {
-    ingredients: [],
-    summary: ""
-  };
+  let geminiData: GeminiScanOutput =
+    input.geminiData || {
+      ingredients: [],
+      summary: ""
+    };
+  const shouldCallGemini = !input.geminiData && !input.skipAi;
 
-  if (text) {
+  if (shouldCallGemini && text) {
     try {
       geminiData = await analyzeWithGemini({ text });
     } catch {
@@ -57,7 +61,7 @@ export async function createScanResult(input: {
         summary: "Fallback parser used because AI extraction was unavailable."
       };
     }
-  } else if (directIngredients.length > 0 && process.env.GEMINI_API_KEY) {
+  } else if (shouldCallGemini && directIngredients.length > 0 && process.env.GEMINI_API_KEY) {
     try {
       geminiData = await analyzeWithGemini({ ingredients: directIngredients });
     } catch {

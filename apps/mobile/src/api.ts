@@ -66,8 +66,8 @@ export async function scanFromPhotos(input: {
 
   if (!response.ok) {
     const detail =
-      payload?.error ||
       payload?.details ||
+      payload?.error ||
       `Image scan failed (${response.status}).`;
     throw new Error(detail);
   }

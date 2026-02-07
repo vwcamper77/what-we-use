@@ -84,6 +84,7 @@ async function callGeminiJson<T>(prompt: string): Promise<T> {
 async function callGeminiWithImages<T>(input: {
   prompt: string;
   images: Array<{ data: string; mimeType: string }>;
+  maxOutputTokens?: number;
 }): Promise<T> {
   const apiKey = getGeminiApiKey();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_VISION_MODEL}:generateContent`;
@@ -115,7 +116,7 @@ async function callGeminiWithImages<T>(input: {
       ],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 1200
+        maxOutputTokens: input.maxOutputTokens ?? 1200
       }
     })
   });
@@ -186,30 +187,24 @@ export async function analyzeWithGemini(input: {
   return normalizeGeminiOutput(output);
 }
 
-export async function analyzeImagesForIngredients(
+export async function analyzeImagesForScan(
   images: Array<{ data: string; mimeType: string; label?: string }>
-): Promise<{ ingredients: string[]; notes: string[] }> {
+): Promise<GeminiScanOutput> {
   const prompt =
-    "You extract ingredient lists from product label photos. " +
+    "You extract ingredient lists from product label photos for a household cleaner app. " +
     "Return only valid JSON with this schema: " +
-    '{"ingredients":["string"],"notes":["string"]}. ' +
-    "Only include ingredients visible on the label. If none visible, return an empty list.";
+    '{"ingredients":[{"name":"string","risk":"safe|caution|avoid","notes":"string"}],"summary":"string"}. ' +
+    "Only include ingredients visible on the label. " +
+    "Keep notes short. If none visible, return an empty ingredient list and a brief summary.";
 
   const output = await callGeminiWithImages<unknown>({
     prompt,
     images: images.map((image) => ({
       data: image.data,
       mimeType: image.mimeType || "image/jpeg"
-    }))
+    })),
+    maxOutputTokens: 600
   });
 
-  const record = (output || {}) as { ingredients?: unknown; notes?: unknown };
-  const ingredients = Array.isArray(record.ingredients)
-    ? record.ingredients.map((item) => String(item || "").trim()).filter(Boolean)
-    : [];
-  const notes = Array.isArray(record.notes)
-    ? record.notes.map((item) => String(item || "").trim()).filter(Boolean)
-    : [];
-
-  return { ingredients, notes };
+  return normalizeGeminiOutput(output);
 }
